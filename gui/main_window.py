@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt
+from services.detector_service import IOCDetector
 
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -47,6 +48,9 @@ class MainWindow(QMainWindow):
         self.file_label = QLabel("No file selected")
 
         self.file_button = QPushButton("Choose File")
+        self.scan_button.clicked.connect(
+            self.detect_ioc
+        )
 
         file_layout.addWidget(self.file_button)
         file_layout.addWidget(self.file_label)
@@ -74,3 +78,13 @@ class MainWindow(QMainWindow):
 
         if filename:
             self.file_label.setText(filename)
+
+    def detect_ioc(self):
+
+        text = self.ioc_input.text()
+
+        result = IOCDetector.detect(text)
+
+        self.results.setPlainText(
+            f"IOC Type : {result.value}"
+        )
