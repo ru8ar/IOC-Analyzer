@@ -1,5 +1,6 @@
 from PySide6.QtCore import Qt
 from services.detector_service import IOCDetector
+from services.validator_service import IOCValidator
 
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -48,9 +49,7 @@ class MainWindow(QMainWindow):
         self.file_label = QLabel("No file selected")
 
         self.file_button = QPushButton("Choose File")
-        self.scan_button.clicked.connect(
-            self.detect_ioc
-        )
+    
 
         file_layout.addWidget(self.file_button)
         file_layout.addWidget(self.file_label)
@@ -71,6 +70,9 @@ class MainWindow(QMainWindow):
         central.setLayout(layout)
 
         self.file_button.clicked.connect(self.choose_file)
+        self.scan_button.clicked.connect(
+                    self.detect_ioc
+                )
 
     def choose_file(self):
 
@@ -81,10 +83,21 @@ class MainWindow(QMainWindow):
 
     def detect_ioc(self):
 
-        text = self.ioc_input.text()
+        value = self.ioc_input.text().strip()
 
-        result = IOCDetector.detect(text)
+        if not value:
+            self.results.setPlainText("Please enter an IOC.")
+            return
 
-        self.results.setPlainText(
-            f"IOC Type : {result.value}"
+        ioc_type = IOCDetector.detect(value)
+
+        validation = IOCValidator.validate(value, ioc_type)
+
+        result_text = (
+            f"IOC           : {value}\n"
+            f"Type          : {ioc_type.value}\n"
+            f"Valid         : {validation.is_valid}\n"
+            f"Message       : {validation.message}"
         )
+
+        self.results.setPlainText(result_text)
