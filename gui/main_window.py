@@ -1,6 +1,9 @@
 from PySide6.QtCore import Qt
 from services.detector_service import IOCDetector
 from services.validator_service import IOCValidator
+from PySide6.QtWidgets import QFormLayout
+from PySide6.QtWidgets import QGroupBox
+from gui.widgets import ResultField
 
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -57,15 +60,30 @@ class MainWindow(QMainWindow):
         self.progress = QProgressBar()
         self.progress.setValue(0)
 
-        self.results = QTextEdit()
-        self.results.setReadOnly(True)
+        result_layout = QFormLayout()
+
+        self.ioc_field = ResultField("IOC")
+        self.type_field = ResultField("Type")
+        self.validation_field = ResultField("Validation")
+        self.message_field = ResultField("Status")
+
+        result_layout.addRow(self.ioc_field)
+        result_layout.addRow(self.type_field)
+        result_layout.addRow(self.validation_field)
+        result_layout.addRow(self.message_field)
+
+        result_group = QGroupBox("Result")
+        result_group.setLayout(result_layout)
 
         layout.addWidget(title)
         layout.addWidget(self.ioc_input)
         layout.addWidget(self.scan_button)
         layout.addLayout(file_layout)
         layout.addWidget(self.progress)
-        layout.addWidget(self.results)
+        layout.addWidget(result_group)
+
+
+        
 
         central.setLayout(layout)
 
@@ -86,18 +104,21 @@ class MainWindow(QMainWindow):
         value = self.ioc_input.text().strip()
 
         if not value:
-            self.results.setPlainText("Please enter an IOC.")
             return
 
         ioc_type = IOCDetector.detect(value)
 
-        validation = IOCValidator.validate(value, ioc_type)
-
-        result_text = (
-            f"IOC           : {value}\n"
-            f"Type          : {ioc_type.value}\n"
-            f"Valid         : {validation.is_valid}\n"
-            f"Message       : {validation.message}"
+        validation = IOCValidator.validate(
+            value,
+            ioc_type
         )
 
-        self.results.setPlainText(result_text)
+        self.ioc_field.set_value(value)
+        self.type_field.set_value(ioc_type.value)
+
+        if validation.is_valid:
+            self.validation_field.set_value("✅ Valid")
+        else:
+            self.validation_field.set_value("❌ Invalid")
+
+        self.message_field.set_value(validation.message)
