@@ -1,6 +1,5 @@
 from PySide6.QtCore import Qt
-from services.detector_service import IOCDetector
-from services.validator_service import IOCValidator
+from services.scan_service import ScanService
 from PySide6.QtWidgets import QFormLayout
 from PySide6.QtWidgets import QGroupBox
 from gui.widgets import ResultField
@@ -66,11 +65,19 @@ class MainWindow(QMainWindow):
         self.type_field = ResultField("Type")
         self.validation_field = ResultField("Validation")
         self.message_field = ResultField("Status")
+        self.malicious_field = ResultField("Malicious")
+        self.harmless_field = ResultField("Harmless")
+        self.suspicious_field = ResultField("Suspicious")
+        self.undetected_field = ResultField("Undetected")
 
         result_layout.addRow(self.ioc_field)
         result_layout.addRow(self.type_field)
         result_layout.addRow(self.validation_field)
         result_layout.addRow(self.message_field)
+        result_layout.addRow(self.malicious_field)
+        result_layout.addRow(self.harmless_field)
+        result_layout.addRow(self.suspicious_field)
+        result_layout.addRow(self.undetected_field)
 
         result_group = QGroupBox("Result")
         result_group.setLayout(result_layout)
@@ -89,7 +96,7 @@ class MainWindow(QMainWindow):
 
         self.file_button.clicked.connect(self.choose_file)
         self.scan_button.clicked.connect(
-                    self.detect_ioc
+                    self.scan_ioc
                 )
 
     def choose_file(self):
@@ -99,26 +106,49 @@ class MainWindow(QMainWindow):
         if filename:
             self.file_label.setText(filename)
 
-    def detect_ioc(self):
+    def scan_ioc(self):
 
         value = self.ioc_input.text().strip()
 
         if not value:
             return
 
-        ioc_type = IOCDetector.detect(value)
+        result = ScanService.scan(value)
 
-        validation = IOCValidator.validate(
-            value,
-            ioc_type
-        )
+        self.ioc_field.set_value(result.value)
 
-        self.ioc_field.set_value(value)
-        self.type_field.set_value(ioc_type.value)
+        self.type_field.set_value(result.ioc_type.value)
 
-        if validation.is_valid:
+        if result.validation.is_valid:
             self.validation_field.set_value("✅ Valid")
         else:
             self.validation_field.set_value("❌ Invalid")
 
-        self.message_field.set_value(validation.message)
+        self.message_field.set_value(result.validation.message)
+
+        self.clear_vt_results()
+
+        if result.vt_result and result.vt_result.success:
+
+            self.malicious_field.set_value(
+                str(result.vt_result.malicious)
+            )
+
+            self.harmless_field.set_value(
+                str(result.vt_result.harmless)
+            )
+
+            self.suspicious_field.set_value(
+                str(result.vt_result.suspicious)
+            )
+
+            self.undetected_field.set_value(
+                str(result.vt_result.undetected)
+            )
+        
+    def clear_vt_results(self):
+
+        self.malicious_field.clear()
+        self.harmless_field.clear()
+        self.suspicious_field.clear()
+        self.undetected_field.clear()
